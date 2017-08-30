@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<!--
+- Licensed Materials - Property of IBM Corp.
+- IBM UrbanCode Build
+- IBM UrbanCode Deploy
+- IBM UrbanCode Release
+- IBM AnthillPro
+- (c) Copyright IBM Corporation 2002, 2016. All Rights Reserved.
+-
+- U.S. Government Users Restricted Rights - Use, duplication or disclosure restricted by
+- GSA ADP Schedule Contract with IBM Corp.
+-->
+
+<project name="install" basedir="." default="usage">
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Properties
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+    <property name="src.dir" location="." />
+    <property environment="env" />
+    <property name="install.root.dir" location="${basedir}" />
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Classpaths
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+    <path id="base-classpath">
+        <fileset dir="${src.dir}/opt">
+            <include name="groovy-*/embeddable/*.jar" />
+        </fileset>
+        <fileset dir="${src.dir}/lib">
+            <include name="**/*.jar"/>
+            <include name="**/*.zip"/>
+            <exclude name="groovy*.jar"/>
+        </fileset>
+        <dirset dir="${src.dir}" includes="install"/>
+    </path>
+
+    <!-- ===================================================================
+    usage
+    =================================================================== -->
+    <target name="usage">
+        <echo>This script performs the installation or upgrade of an Agent</echo>
+        <echo>install-agent target performs installation of an Agent and prompts for input.</echo>
+        <echo>install-agent target performs installation of an Agent and prompts for input.</echo>
+        <echo>
+        </echo>
+    </target>
+    
+    <target name="default-props-exists">
+        <available file="${src.dir}/install.properties" property="defPropFileExists"/>
+    </target>
+
+    <target name="loadproperties-default" depends="default-props-exists" if="defPropFileExists">
+        <loadproperties srcfile="${src.dir}/install.properties" encoding="UTF-8">
+            <filterchain>
+                <escapeunicode />
+            </filterchain>
+        </loadproperties>
+    </target>
+
+    <target name="loadproperties" if="install.properties.file" depends="loadproperties-default">
+        <loadproperties srcfile="${install.properties.file}" encoding="UTF-8">
+            <filterchain>
+                <escapeunicode />
+            </filterchain>
+        </loadproperties>
+    </target>
+
+    <target name="install-non-interactive" depends="taskdef-groovy,loadproperties">
+        <groovy classpathref="classpath">
+            def AgentInstaller installer = new AgentInstaller(properties.classpathstring)
+            installer.productName = 'IBM UrbanCode Deploy'
+            installer.setNonInteractive(true)
+            installer.setAntBuilder(ant)
+            installer.install('IBM UrbanCode Deploy', 'ibm-ucd', 'IBM-UCD')
+        </groovy>
+    </target>
+
+    <target name="install-agent" depends="taskdef-groovy,loadproperties">
+        <groovy classpathref="classpath">
+            def AgentInstaller installer = new AgentInstaller(properties.classpathstring)
+            installer.setAntBuilder(ant)
+            installer.install('IBM UrbanCode Deploy', 'ibm-ucd', 'IBM-UCD')
+        </groovy>
+    </target>
+
+    <target name="auto-upgrade-agent" depends="taskdef-groovy,loadproperties">
+        <groovy classpathref="classpath">
+            def AgentInstaller installer = new AgentInstaller(properties.classpathstring)
+            installer.setNonInteractive(true)
+            installer.setAutoUpgradeAgent(true)
+            installer.setAntBuilder(ant)
+            installer.install('IBM UrbanCode Deploy', 'ibm-ucd', 'IBM-UCD')
+        </groovy>
+    </target>
+
+    <target name="check-classpath-includes">
+        <condition property="has-main-include" value="true">
+            <and>
+                <available file="lib/include-main-jars.conf" type="file"/>
+                <available file="../lib" type="dir"/>
+            </and>
+        </condition>
+    </target>
+
+    <target name="define-groovy-classpath-include" depends="check-classpath-includes" if="has-main-include">
+        <path id="classpath">
+            <path refid="base-classpath"/>
+            <fileset dir="../lib" includesfile="lib/include-main-jars.conf"/>
+        </path>
+    </target>
+
+    <target name="define-groovy-classpath-no-include" depends="check-classpath-includes" unless="has-main-include">
+        <path id="classpath" refid="base-classpath"/>
+    </target>
+
+    <target name="taskdef-groovy" depends="define-groovy-classpath-include, define-groovy-classpath-no-include">
+        <pathconvert property="classpathstring" refid="classpath" />
+        <taskdef name="groovy" classname="org.codehaus.groovy.ant.Groovy" classpathref="classpath" />
+    </target>
+
+</project>

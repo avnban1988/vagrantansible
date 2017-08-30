@@ -1,0 +1,4 @@
+dir @AGENT_HOME@\conf\agent
+dir @AGENT_HOME@\conf
+set @AGENT_HOME@\lib
+nativedir @AGENT_HOME@\native\@ARCH@

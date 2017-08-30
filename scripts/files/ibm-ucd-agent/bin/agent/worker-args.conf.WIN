@@ -1,0 +1,11 @@
+-Xrs
+-Xmx256m
+-Dfile.encoding=UTF-8
+-Dconsole.encoding=UTF-8
+-Djava.security.properties=@AGENT_HOME@\conf\agent\java.security
+-Djava.io.tmpdir=@AGENT_HOME@/var/temp
+-jar
+@AGENT_HOME@\monitor\air-worker.jar
+@AGENT_HOME@\bin\classpath.conf
+5000
+com.urbancode.air.agent.AgentWorker

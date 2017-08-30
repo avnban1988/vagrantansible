@@ -1,0 +1,15 @@
+---
+#ansible-playbook /vagrant/examples/ssh-addkey.yml --ask-pass --user=206445665
+- hosts: new
+  sudo: no
+  gather_facts: no
+  remote_user: 206445665
+
+  tasks:
+  - name: run ssh-keyscan to add keys to known_hosts
+    local_action: shell ssh-keyscan {{ inventory_hostname }} >> ~/.ssh/known_hosts
+  - name: install ssh key
+  
+    authorized_key: user=206445665 
+                    key="{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}" 
+                    state=present

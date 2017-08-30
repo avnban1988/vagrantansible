@@ -1,0 +1,15 @@
+#!/bin/sh
+JAVA_HOME=@JAVA_HOME@
+
+SHELL_NAME=$0
+SHELL_PATH=`dirname ${SHELL_NAME}`
+
+if [ "." = "$SHELL_PATH" ]
+then
+   SHELL_PATH=`pwd`
+fi
+AGENT=`dirname ${SHELL_PATH}`
+export AGENT JAVA_HOME
+
+cd $AGENT
+$AGENT/ucdtoolkit/bin/install-toolkit.sh

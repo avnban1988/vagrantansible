@@ -1,0 +1,73 @@
+---
+- hosts: new
+  gather_facts: no
+  become: yes
+  become_user: root
+  remote_user: 206445665
+
+  tasks:
+ 
+  - name: add user urbancode
+    user:	
+        name: urbancode
+        state: present
+
+  - name: set urbancode password
+    shell: echo 'w@bP$4dm!N' | passwd urbancode --stdin
+    args:
+        executable: /bin/bash
+  - name: installing zip
+    yum: pkg={{item}} state=installed
+    with_items:
+     - zip
+     - unzip
+     - java-1.8.0-openjdk
+     - java-1.8.0-openjdk-devel
+     - cifs-utils
+     - openssh-clients
+        
+  - name: create directories
+    file:
+        path: /opt/urbancode/agent
+        owner: urbancode
+        group: urbancode
+        state: directory
+        mode: 755
+  - name: unarchieving agent zip file
+    unarchive:
+         src: /vagrant/scripts/files/ibm-ucd-agent.zip
+         dest: /home/urbancode/
+  - name: change script permission
+    file:
+        path: /home/urbancode/install-many-agents.sh
+        mode: 0777
+  - name: execute agent installation script
+    shell: /home/urbancode/install-many-agents.sh
+    args:
+        executable: /bin/bash
+  - name: change permission of installation folder  
+    file: dest=/opt/urbancode/ owner=urbancode group=urbancode recurse=yes
+  - name: create start script
+    copy:
+     src: /vagrant/scripts/files/ibm-ucdagent
+     dest: /etc/rc.d/init.d/ibm-ucdagent
+     mode: 0777
+  - name: set unlevels 5
+    file:
+     src: /etc/rc.d/init.d/ibm-ucdagent
+     dest: /etc/rc.d/rc5.d/S98ibm-ucdagent
+     state: link
+  - name: set unlevels 4
+    file:
+     src: /etc/rc.d/init.d/ibm-ucdagent
+     dest: /etc/rc.d/rc4.d/S98ibm-ucdagent
+     state: link
+  - name: set unlevels 3
+    file:
+     src: /etc/rc.d/init.d/ibm-ucdagent
+     dest: /etc/rc.d/rc3.d/S98ibm-ucdagent
+     state: link
+  - name: start agent
+    service:
+      name: ibm-ucdagent
+      state: started    

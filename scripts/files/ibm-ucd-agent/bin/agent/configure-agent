@@ -1,0 +1,23 @@
+#!/bin/sh
+# Licensed Materials - Property of IBM Corp.
+# IBM UrbanCode Build
+# IBM UrbanCode Deploy
+# IBM UrbanCode Release
+# IBM AnthillPro
+# (c) Copyright IBM Corporation 2002, 2014. All Rights Reserved.
+#
+# U.S. Government Users Restricted Rights - Use, duplication or disclosure restricted by
+# GSA ADP Schedule Contract with IBM Corp.
+
+# == BEGIN INSTALL MODIFICATIONS ===============================================
+
+AGENT_HOME="@AGENT_HOME@"
+JAVA_HOME="@JAVA_HOME@"
+
+# == END INSTALL MODIFICATIONS =================================================
+
+cd "$AGENT_HOME/bin"
+exec "$JAVA_HOME/bin/java" -jar \
+  "$AGENT_HOME/monitor/launcher.jar" \
+  "$AGENT_HOME/bin/classpath.conf" \
+  com.urbancode.air.agent.AgentConfigurator "$@"

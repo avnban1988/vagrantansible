@@ -1,0 +1,11 @@
+---
+- hosts: DEVPcloudant
+  gather_facts: no
+  become: yes
+  become_user: root
+  remote_user: 206445665
+  tasks:
+    - file:
+        path: /foo.txt
+        state: touch
+        mode: 7777

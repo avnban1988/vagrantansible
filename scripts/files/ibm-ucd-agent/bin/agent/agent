@@ -1,0 +1,138 @@
+#!/bin/sh
+# Licensed Materials - Property of IBM Corp.
+# IBM UrbanCode Build
+# IBM UrbanCode Deploy
+# IBM UrbanCode Release
+# IBM AnthillPro
+# (c) Copyright IBM Corporation 2002, 2014. All Rights Reserved.
+#
+# U.S. Government Users Restricted Rights - Use, duplication or disclosure restricted by
+# GSA ADP Schedule Contract with IBM Corp.
+
+# == BEGIN INSTALL MODIFICATIONS ===============================================
+
+AGENT_HOME="@AGENT_HOME@"
+JAVA_DEBUG_OPTS="@JAVA_DEBUG_OPTS@"
+JAVA_HOME="@JAVA_HOME@"
+PATH=$PATH:$AGENT_HOME/opt/udclient
+
+# == END INSTALL MODIFICATIONS =================================================
+
+umask 0002
+
+ANT_HOME="$AGENT_HOME/opt/apache-ant-1.8.4"
+GROOVY_HOME="$AGENT_HOME/opt/groovy-1.8.8"
+JAVACMD="$JAVA_HOME/bin/java"
+AGENT_TMPDIR="$AGENT_HOME/var/temp"
+
+JAVA_OPTS="-Dfile.encoding=UTF-8"
+if [ -r "$AGENT_HOME/bin/setenv.sh" ];
+then
+  . "$AGENT_HOME/bin/setenv.sh"
+fi
+
+# Ensure a writeable temporary directory
+if [ ! -w "${TMPDIR:-/tmp}" ] || [ ! -x "${TMPDIR:-/tmp}" ]
+then
+  TMPDIR="$AGENT_TMPDIR"
+fi
+
+export AGENT_HOME JAVA_HOME ANT_HOME GROOVY_HOME PATH JAVA_OPTS TMPDIR
+
+# This only affects the monitor and should not need to be changed.
+# The worker heap is set in bin/worker-args.conf.
+MONITOR_JAVA_OPTS="-Xmx64m -Dfile.encoding=UTF-8"
+start_class=com.urbancode.air.agent.AgentMonitor
+stop_class=com.urbancode.air.agent.AgentWorker
+
+# OS specific support.  $var _must_ be set to either true or false.
+cygwin=false
+os400=false
+case "`uname`" in
+CYGWIN*) cygwin=true;;
+OS400*) os400=true;;
+esac
+
+# For Cygwin, ensure paths are in UNIX format before anything is touched
+if $cygwin; then
+  [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --unix "$JAVA_HOME"`
+  [ -n "$AGENT_HOME" ] && AGENT_HOME=`cygpath --unix "$AGENT_HOME"`
+  [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --unix "$CLASSPATH"`
+fi
+
+# For OS400
+if $os400; then
+  # Set job priority to standard for interactive (interactive - 6) by using
+  # the interactive priority - 6, the helper threads that respond to requests
+  # will be running at the same priority as interactive jobs.
+  COMMAND='chgjob job('$JOBNAME') runpty(6)'
+  system $COMMAND
+
+  # Enable multi threading
+  export QIBM_MULTI_THREADED=Y
+fi
+
+# -- Execute -------------------------------------------------------------------
+
+# For Cygwin, switch paths to Windows format before running java
+if $cygwin; then
+  JAVA_HOME=`cygpath --absolute --windows "$JAVA_HOME"`
+  AGENT_HOME=`cygpath --absolute --windows "$AGENT_HOME"`
+  CLASSPATH=`cygpath --path --windows "$CLASSPATH"`
+fi
+
+# -- Run -----------------------------------------------------------------------
+
+if [ "$1" = "run" ]; then
+  shift
+  WORKER_JAVA_OPTS=
+  if [ "$1" = "-debug" ]; then
+    shift
+    WORKER_JAVA_OPTS="$JAVA_DEBUG_OPTS"
+  fi
+  cd "$AGENT_HOME/bin"
+  command_line="exec \"$JAVACMD\" $MONITOR_JAVA_OPTS -jar \"$AGENT_HOME/monitor/air-monitor.jar\" \
+    \"$AGENT_HOME\" \"$AGENT_HOME/bin/worker-args.conf\" 7000 $WORKER_JAVA_OPTS \
+    -Dagent.log.to.console=y"
+  eval $command_line
+
+# -- Start ---------------------------------------------------------------------
+
+elif [ "$1" = "start" ] ; then
+  shift
+  WORKER_JAVA_OPTS=
+  if [ "$1" = "-debug" ]; then
+    shift
+    WORKER_JAVA_OPTS="$JAVA_DEBUG_OPTS"
+  fi
+  touch "$AGENT_HOME/var/log/ibm-ucdagent.out"
+  cd "$AGENT_HOME/bin"
+  command_line="exec \"$JAVACMD\" $MONITOR_JAVA_OPTS -jar \"$AGENT_HOME/monitor/air-monitor.jar\" \
+    \"$AGENT_HOME\" \"$AGENT_HOME/bin/worker-args.conf\" 7000 $WORKER_JAVA_OPTS \
+    >\"$AGENT_HOME/var/log/stdout\" 2>&1 &"
+  eval $command_line
+
+  if [ ! -z "$1" -a -f "$1" ]; then
+    echo $! > "$1"
+  fi
+
+# -- Stop ----------------------------------------------------------------------
+
+elif [ "$1" = "stop" ] ; then
+
+  #uncomment to enable netstat logging on agent stop
+  #netstat | grep tcp > $AGENT_HOME/var/log/netstat.out
+  cd "$AGENT_HOME/bin"
+  command_line="exec \"$JAVACMD\" $MONITOR_JAVA_OPTS -jar \
+    \"$AGENT_HOME/monitor/air-monitor.jar\" -shutdown \
+    >> \"$AGENT_HOME/var/log/monitor.out\" 2>&1"
+  eval $command_line
+
+# -- Usage ---------------------------------------------------------------------
+
+else
+#	Also, start -debug|run -debug to instruct java to listen on port 10000
+#	for remote JPDA Debugger connections.
+  echo "Usage: agent {run|start|stop|stop -force}"
+  exit 1
+fi

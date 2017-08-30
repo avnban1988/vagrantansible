@@ -1,0 +1,43 @@
+#!/bin/sh
+# Licensed Materials - Property of IBM Corp.
+# IBM UrbanCode Deploy
+# (c) Copyright IBM Corporation 2011, 2014. All Rights Reserved.
+#
+# U.S. Government Users Restricted Rights - Use, duplication or disclosure restricted by
+# GSA ADP Schedule Contract with IBM Corp.
+
+#JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,address=localhost:10000,server=y,suspend=y "
+
+SHELL=/bin/sh
+export SHELL
+
+if [ -z "$COLUMNS" -o -z "LINES" ] && which resize >/dev/null 2>/dev/null; then
+    if tty -s; then
+        # detect console dimensions
+        eval `resize`
+    fi
+fi
+
+if [ -n "$JAVA_HOME" ]; then
+    # change the dir to the root of the client directory
+    SHELL_NAME=$0
+    SHELL_PATH=`dirname ${SHELL_NAME}`
+    
+    if [ "." = "$SHELL_PATH" ]
+    then
+       SHELL_PATH=`pwd`
+    fi
+
+    javacmd="$JAVA_HOME/bin/java"
+    jarfile="$SHELL_PATH/udclient.jar"
+    
+    if [ -r "$jarfile" ]; then
+        "$javacmd" $JAVA_OPTS -jar "$jarfile" "$@"
+    else
+        echo "Didn't find $jarfile in directory ${SHELL_PATH}"
+        exit 1
+    fi
+else
+    echo You must have JAVA_HOME set on your environment to use the uDeploy client.
+    exit 1
+fi
